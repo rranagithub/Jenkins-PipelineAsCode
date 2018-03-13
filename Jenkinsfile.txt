@@ -1,0 +1,46 @@
+node 
+{ 
+  node ('slave-agent-test3'){
+//    def sonarqube = tool name: 'sonarqube', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+
+
+stage('SCM')
+  {
+       //git credentialsId: 'c0043cc4-7425-4106-9701-e24fa6c7f6cf', url: 'https://github.com/srivastavav/jpetstore-6.git'
+         git 'https://github.com/kunalsingh2811/JPetStoreNew.git'
+  }
+  
+  
+    stage('Build')
+  {
+     //sh 'rm -rf home/ansible/workspace/Devops_Do_NotTouch*' 
+     sh '/opt/apache-maven-3.5.2/bin/mvn clean package'
+  }
+
+    stage('Junit')
+  {
+     echo "Running Junit Test"
+  } 
+  //stage('Sonar')
+  //{
+//      sh "${sonarqube}/bin/sonar-runner -Dsonar.host.url=http://10.1.23.187:9000/sonar/ -Dsonar.login=72a01a408859dacff0216b865eba711987d75a17 -Dsonar.projectName=$JOB_NAME -Dsonar.projectVersion=1.0 -Dsonar.projectKey=JPetStore -Dsonar.sources=/var/lib/jenkinstest/workspace/$JOB_NAME/src/main  -Dsonar.tests=/var/lib/jenkinstest/workspace/$JOB_NAME/src/test"
+      //codesonar conditions: [], credentialId: 'vikas', hubAddress: '10.1.23.187:9000/sonar', projectName: '${JOB_NAME}', protocol: 'http'
+      //stage('SonarQube analysis') {
+       // withSonarQubeEnv('sonarqube') {
+           // sh '/opt/maven/bin/mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.2:sonar'
+        //} 
+       
+        stage('deploy')
+  {
+      sh 'chown -R tomcat:tomcat /opt/apache-tomcat-7.0.61;cd /opt/apache-tomcat-7.0.61/webapps;rm -rf JPetStore*;cp -R /home/ansible/workspace/Devops-Pipeline/target/JPetStore* /opt/apache-tomcat-7.0.61/webapps'
+      
+  }     
+  /*sleep(60)
+        stage('Tomcat')
+        {
+            sh '/opt/apache-tomcat-7.0.61/bin/startup.sh' 
+        }
+      */
+      
+  }
+  }
