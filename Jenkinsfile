@@ -1,100 +1,59 @@
 node{
-			def DASID,DWSID,DDBSID,DDBS2ID,QVID,DVID,PVID,x,y,P1,P2,P3,P4,P5;
-			def stack="${params.StackName}"
-			def reg="${params.Region}"
-			def qa="${params.QA_VPC_CIDR}"
-			def dev="${params.Dev_VPC_CIDR}"
-			def prod="${params.Prod_VPC_CIDR}"
+        
+        if("${params.Environment}"=="Dev" && "${params.ApplicationTier}"=="Three Tier"){
+        def x,y,z,RDS;
+        def vpc=readFile '/usr/lib/jenkins/networking.properties'
+        def values = vpc.split( ',' )
+    
+		def DASID=values[0]
+		def DWSID=values[1]
+		def DDBSID=values[2]
+		def DDBS2ID=values[3]
+		def DVID=values[4]
+		
+		def stack="${params.StackName}"
+		def instance="${params.ApplicationName}"
+		def IT="${params.ServerSize}"
+		def reg="ap-northeast-1"
 
-      
-                stage('Networking') 
-        {       echo "create the whole networking stack and will output every resource created : vpc id’s , subnet id’s .... "
-				withAWS(credentials:'CFN', region:"${reg}") { 
-				echo "QA VPC CIDR: "+"${qa}" 
-				echo "Dev VPC CIDR: "+"${dev}"
-				echo "Prod VPC CIDR: "+"${prod}"
-                
-				def outputs = cfnUpdate(stack:stack +'-job1', params:["QAVNetworkCIDR=${qa}", "DEVVNetworkCIDR=${dev}", "PRODVNetworkCIDR=${prod}"], url:'https://s3-ap-northeast-1.amazonaws.com/aws-hcl-cfn-bucket/JOB1v5.template')
-				outputs.each{ k, v -> println "${k}:${v}" }
-             	DASID = outputs.find{ it.key == "DEVAppSubnetID" }.value
-				DWSID = outputs.find{ it.key == "DEVWebSubnetID" }.value
-				DDBSID = outputs.find{ it.key == "DEVDBSubnetID" }.value
-				DDBS2ID = outputs.find{ it.key == "DEVDBSubnet2ID" }.value
-				QVID = outputs.find{ it.key == "QAVPCID" }.value
-				DVID = outputs.find{ it.key == "DEVVPCID" }.value
-				PVID = outputs.find{ it.key == "PRODVPCID" }.value
-				P1 = outputs.find{ it.key == "PRODPrivateRouteTableId" }.value
-				P2 = outputs.find{ it.key == "DEVPrivateRouteTableId" }.value
-				P3 = outputs.find{ it.key == "QAPrivateRouteTableId" }.value
-				P4 = outputs.find{ it.key == "PRODPublicRouteTableId" }.value
-				P5 = outputs.find{ it.key == "QAPublicRouteTableId" }.value
-				P6 = outputs.find{ it.key == "DEVPublicRouteTableId" }.value
-                   println "Dev app subnet id: " + DASID
-                   println "Dev web subnet id: " + DWSID
-				   println "Dev DB subnet id1: " + DDBSID
-				   println "Dev DB subnet id2: " + DDBS2ID
-				   println "====================================================================================================================="
-				   println "QA VPC ID: " + QVID
-				   println "Dev VPC ID: " + DVID
-				   println "Prod VPC ID: " + PVID
-				   
-				   writeFile file: "/usr/lib/jenkins/networking.properties", text: "${DASID},${DWSID},${DDBSID},${DDBS2ID},${DVID}"
-                    
-               } 
-        } 
-		
-		        stage('Security') 
-        {        echo "create security"
+		        stage('Application Stack ') 
+        {        echo "Create Application stack- ELB,EC2 and DB It will output the instance-id"
+                    println "Dev app subnet id: " + DASID
+                    println "Dev web subnet id: " + DWSID
+				    println "Dev DB subnet id1: " + DDBSID
+				    println "Dev DB subnet id2: " + DDBS2ID
+				    println "Dev VPC ID: " + DVID
 					withAWS(credentials:'CFN', region:"${reg}") { 
                 
-				def outputs = cfnUpdate(stack:stack +'-job2', url:'https://s3-ap-northeast-1.amazonaws.com/aws-hcl-cfn-bucket/JOB2v1.template')
-				outputs.each{ k, v -> println "${k}:${v}" }
-         
-                    
-               } 
-        } 
-		
-		        stage('Logging') 
-        {        echo "create audit logging"
-					withAWS(credentials:'CFN', region:"${reg}") { 
-                
-				def outputs = cfnUpdate(stack:stack +'-job3', url:'https://s3-ap-northeast-1.amazonaws.com/aws-hcl-cfn-bucket/JOB3v1-updated.template')
-				outputs.each{ k, v -> println "${k}:${v}" }
-         
-                    
-               }
-               
-               
-               	 stage('VPC End Points') 
-        {     
-					echo "Running template 5, Creating VPC End Points"
-					withAWS(credentials:'CFN', region:"${reg}") { 
-			def outputs = cfnUpdate(stack:stack +'-job5', params:["VPCQA=${QVID}","VPCDEV=${DVID}","VPCPROD=${PVID}","PrivateRouteTablePROD=${P1}","PrivateRouteTableDEV=${P2}","PrivateRouteTableQA=${P3}",
-				"PublicRouteTablePROD=${P4}","PublicRouteTableQA=${P5}","PublicRouteTableDEV=${P6}"	], url:'https://s3-ap-northeast-1.amazonaws.com/aws-hcl-cfn-bucket/JOB5.template')
+				def outputs = cfnUpdate(stack:stack +'-job4', params:["SubnetId=${DASID}","ELBSubnet=${DWSID}","DBSubnetId1=${DDBSID}","DBSubnetId2=${DDBS2ID}","devVPCId=${DVID}","InstanceType=${IT}","EC2NameTag=ansible-${instance}"], tags:["EC2Name=ansible-${instance}"], url:'https://s3-ap-northeast-1.amazonaws.com/aws-hcl-cfn-bucket/JOB4v7.template')
 				outputs.each{ k, v -> println "${k}:${v}" } 
-
+				x = outputs.find{ it.key == "AppServerPrivateIp" }.value
+				y = outputs.find{ it.key == "AppServerPrivateDNS" }.value
+                z = outputs.find{ it.key == "ELBDNSName" }.value
+                RDS = outputs.find{ it.key == "RDSEndpoint" }.value
 					}
                }
                
-               stage('IAM')
-        {       
-                	withAWS(credentials:'CFN', region:"${reg}") { 
-                echo "Creating IAM Roles"
-				def outputs = cfnUpdate(stack:stack +'-job6', url:'https://s3-ap-northeast-1.amazonaws.com/aws-hcl-cfn-bucket/JOB6.template')
-				outputs.each{ k, v -> println "${k}:${v}" } 
+               stage('Ansible Tower')
+        {       echo "Calling Ansible Job"
+                build job: 'Environment-Provisioning-Pipeline', 
+				parameters: [
+                        [$class:'StringParameterValue', name:'cfn_ip_address', value:x],
+                        [$class:'StringParameterValue', name:'privateDNS', value:y],
+                        [$class:'StringParameterValue', name:'RDS End Point', value:RDS]
+                        ]
         } 
-        } 
-		
-        mail (to: "${params.Recipient}",
-				subject: "AWS Cloud Formation Updates from Hipaa network deployment",
-				body: 
-                "HIPAA Network deployment is success. Please find the details below"+"\n"+"\n"+"QA VPC ID:          "+"${QVID}"+"\n"+"Dev VPC ID:         "+"${DVID}"+"\n"+
-				"Prod VPC ID:        "+"${PVID}"+"\n"+"Dev App Subnet ID:        "+"${DASID}"+"\n"+"Dev Web Subnet ID:        "+"${DWSID}"+"\n"+"Dev DB Subnet ID:        "+"${DDBSID}"+
-				"\n"+"Dev DB Subnet ID2:        "+"${DDBS2ID}")
         
-                echo "Sending notification...."        
-             
-               
+                stage('Notification'){
+                    echo "Sending notification...." 
+                    mail (to: "${params.Recipient}",
+				subject: "AWS Cloud Formation Updates from Application Deployment",
+				body: "EC2 Instance and RDS has been created sucessfully..."+"\n"+"\n"+"EC2 Instance Private IP:       ${x}"+"\n"+"EC2 Instance Private DNS:       ${y}" +"\n"+"ELB URL:      "+"${z}/${instance}/"+"\n"+"RDS End Point:      "+"${RDS}")
         
-    }
+                }
+                     
+        }    else{
+            echo "Check you have selected right environment and right application tier"
+        }
+        
 }
