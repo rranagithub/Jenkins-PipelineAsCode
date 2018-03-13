@@ -1,0 +1,94 @@
+node{
+        def x="${params.cfn_ip_address}"
+        def y="${params.privateDNS}"
+        def RDS="${params.RDSEndPoint}"
+                stage('JDK Job') 
+        {
+                echo "Installing java development kit"
+                                                                                build job: 'JDK_V1', 
+                                                                                parameters: [
+                        [$class:'StringParameterValue', name:'cfn_ip_address', value:x],
+                        [$class:'StringParameterValue', name:'privateDNS', value:y]
+                        ]
+        }
+                stage('JRE Job') 
+        {
+                echo "Installing java runtime environment"
+                                                                                build job: 'JRE', 
+                                                                                parameters: [
+                        [$class:'StringParameterValue', name:'cfn_ip_address', value:x],
+                        [$class:'StringParameterValue', name:'PrivateDns', value:y]
+                        ]
+        }
+                stage('Maven Job') 
+        {
+                echo "Installing Maven for code build"
+                                                                                build job: 'Maven', 
+                                                                                parameters: [
+                        [$class:'StringParameterValue', name:'cfn_ip_address', value:x],
+                        [$class:'StringParameterValue', name:'privateDNS', value:y]
+                        ]
+        }
+               stage('MySql Job') 
+        {
+                echo "Installing mySql database"
+                                                                                build job: 'MySql', 
+                                                                                parameters: [
+                        [$class:'StringParameterValue', name:'cfn_ip_address', value:x],
+                        [$class:'StringParameterValue', name:'privateDNS', value:y],
+                        [$class:'StringParameterValue', name:'RDSEndPoint', value:RDS]
+                        ]
+        }
+        
+        stage('Git Job') 
+        {
+                echo "Install Git for code clone"
+                                                                                build job: 'Git', 
+                                                                                parameters: [
+                        [$class:'StringParameterValue', name:'cfn_ip_address', value:x],
+                        [$class:'StringParameterValue', name:'privateDNS', value:y]
+                        ]
+        }
+        
+        stage('Tomcat Job') 
+        {
+                echo "Installing Tomcat Apache for app server"
+                                                                                build job: 'Tomcat', 
+                                                                                parameters: [
+                        [$class:'StringParameterValue', name:'cfn_ip_address', value:x],
+                        [$class:'StringParameterValue', name:'privateDNS', value:y]
+                        ]
+        }
+        
+        
+                /*stage('SonarQube Job') 
+        {
+                echo "Installing SonarQube for static code analysis"
+                                                                                build job: 'SonarQube', 
+                                                                                parameters: [
+                        [$class:'StringParameterValue', name:'cfn_ip_address', value:x],
+                        [$class:'StringParameterValue', name:'privateDNS', value:y]
+                        ]
+        }*/
+        
+        stage('Agent Slave Job') 
+        {
+                echo "Installing Jenkins Slave"
+                                                                                build job: 'Agent-Slave', 
+                                                                                parameters: [
+                        [$class:'StringParameterValue', name:'cfn_ip_address', value:x],
+                        [$class:'StringParameterValue', name:'privateDNS', value:y]
+                        ]
+        }
+        sleep(30)
+        stage('Devops Job') 
+        {
+                echo "Calling Devops job"
+                                                                                build job: 'Devops-Pipeline', 
+                                                                                parameters: [
+                        [$class:'StringParameterValue', name:'cfn_ip_address', value:x],
+                        [$class:'StringParameterValue', name:'privateDNS', value:y]
+                        ]
+        }
+        
+    }
